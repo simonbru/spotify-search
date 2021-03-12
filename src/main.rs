@@ -90,6 +90,18 @@ fn search_in_tracks<'a>(tracks: &'a Vec<TrackMeta>, query: &str) -> Vec<&'a Trac
         .collect()
 }
 
+fn truncate_chars(value: &str, max: usize) -> String {
+    if max < 3 {
+        panic!("Can't truncate to fewer than 3 chars.")
+    }
+    let size = value.chars().count();
+    if size <= max {
+        return value.to_string();
+    }
+    let truncated_value: String = value.chars().take(max - 3).collect();
+    return format!("{}...", truncated_value.trim_end());
+}
+
 fn format_result(collection_name: &str, track_meta: &TrackMeta) -> String {
     let artists: Vec<String> = track_meta
         .track
@@ -104,7 +116,7 @@ fn format_result(collection_name: &str, track_meta: &TrackMeta) -> String {
     return format!(
         // "{collection}\t{track}\t{artists}"
         "{collection}:   {track}  |  {artists}",
-        collection = collection_name,
+        collection = truncate_chars(collection_name, 30),
         artists = artists_label,
         track = track_meta.track.name,
     );
