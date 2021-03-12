@@ -39,6 +39,8 @@ struct Playlist {
     tracks: TracksPage,
 }
 
+type LibraryTracks = Vec<TrackMeta>;
+
 /// When a track has no artist, its list of artist contains a single artist with empty values.
 fn exclude_invalid_artists<'de, D>(deserializer: D) -> Result<Vec<Artist>, D::Error>
 where
@@ -138,10 +140,33 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
             process::exit(1);
         }
     };
-    let playlist_dir = Path::new(config::LIBRARY_DIR).join("playlists");
 
     println!("COLLECTION:   TRACK  |  ARTISTS");
     println!("-------------------------------");
+    // Search tracks in library
+    let search_in_library = || {
+        let path = Path::new(config::LIBRARY_DIR).join("tracks.json");
+
+        // println!("Parsing {:?}", path);
+        let contents = fs::read_to_string(&path).expect("Something went wrong reading the file");
+
+        let tracks: LibraryTracks = match serde_json::from_str(&contents) {
+            Ok(val) => val,
+            Err(err) => {
+                println!("Could not parse {:?}: {}", path.file_name().unwrap(), err);
+                return;
+            }
+        };
+        let tracks = search_in_tracks(&tracks, &search_query);
+        for track in tracks {
+            let result_line = format_result("Library", track);
+            println!("{}", result_line);
+        }
+    };
+    search_in_library();
+
+    // Search tracks in playlists
+    let playlist_dir = Path::new(config::LIBRARY_DIR).join("playlists");
     for entry in fs::read_dir(playlist_dir).unwrap() {
         let entry = entry.unwrap();
         let path = entry.path();
