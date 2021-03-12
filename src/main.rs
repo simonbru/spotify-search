@@ -14,6 +14,7 @@ struct Artist {
 
 #[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
 struct Track {
+    uri: String,
     name: String,
 
     #[serde(deserialize_with = "exclude_invalid_artists")]
@@ -171,6 +172,7 @@ mod tests {
                         {
                             "added_at": "2010-08-23T10:33:01Z",
                             "track": {
+                                "uri": "spotify:track:asdfasdf",
                                 "name": "My track",
                                 "artists": [
                                     {
@@ -190,6 +192,7 @@ mod tests {
                 items: vec![TrackMeta {
                     added_at: "2010-08-23T10:33:01Z".to_string(),
                     track: Track {
+                        uri: "spotify:track:asdfasdf".to_string(),
                         name: "My track".to_string(),
                         artists: vec![Artist {
                             name: "My artist".to_string(),
@@ -205,6 +208,7 @@ mod tests {
     fn parse_track_without_artists() {
         let test_track_str = r#"
             {
+                "uri": "spotify:track:asdfasdf",
                 "name": "My track",
                 "artists": [
                     {
@@ -229,6 +233,7 @@ mod tests {
                     {
                         "added_at": "2010-08-23T10:33:01Z",
                         "track": {
+                            "uri": "spotify:track:asdfasdf",
                             "name": "My track",
                             "artists": [
                                 {
