@@ -3,41 +3,109 @@ use std::fs;
 use std::path::Path;
 use std::process;
 
-use serde_json::Value;
+use serde::{Deserialize, Deserializer};
 
 mod config;
 
-fn search_in_tracks<'a>(tracks: &'a Value, query: &str) -> Vec<&'a Value> {
-    tracks
-        .as_array()
-        .unwrap()
+#[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
+struct Artist {
+    name: String,
+}
+
+#[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
+struct Track {
+    name: String,
+
+    #[serde(deserialize_with = "exclude_invalid_artists")]
+    artists: Vec<Artist>,
+}
+
+#[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
+struct TrackMeta {
+    added_at: String,
+    track: Track,
+}
+
+#[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
+struct TracksPage {
+    #[serde(deserialize_with = "exclude_null_tracks")]
+    items: Vec<TrackMeta>,
+}
+
+#[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
+struct Playlist {
+    name: String,
+    tracks: TracksPage,
+}
+
+/// When a track has no artist, its list of artist contains a single artist with empty values.
+fn exclude_invalid_artists<'de, D>(deserializer: D) -> Result<Vec<Artist>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let artists: Vec<Artist> = Deserialize::deserialize(deserializer)?;
+    let filtered_artists = artists
         .iter()
-        .map(|track_meta| &track_meta["track"])
-        .filter(|track| match track["name"].as_str() {
-            Some(track_name) => track_name.to_lowercase().contains(&query.to_lowercase()),
-            None => false,
+        .filter(|artist| artist.name != "")
+        .cloned()
+        .collect();
+    return Ok(filtered_artists);
+}
+
+/// Some playlist contain items with dummy metadata and "track: null"
+fn exclude_null_tracks<'de, D>(deserializer: D) -> Result<Vec<TrackMeta>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
+    struct NullableTrackMeta {
+        added_at: String,
+        track: Option<Track>,
+    }
+
+    let items: Vec<NullableTrackMeta> = Deserialize::deserialize(deserializer)?;
+    let track_metas = items
+        .iter()
+        .filter(|nullable_track_meta| nullable_track_meta.track.is_some())
+        .cloned()
+        .map(|track_meta| TrackMeta {
+            added_at: track_meta.added_at,
+            track: track_meta.track.unwrap(),
+        })
+        .collect();
+    return Ok(track_metas);
+}
+
+fn search_in_tracks<'a>(tracks: &'a Vec<TrackMeta>, query: &str) -> Vec<&'a TrackMeta> {
+    tracks
+        .iter()
+        .filter(|track_meta| {
+            track_meta
+                .track
+                .name
+                .to_lowercase()
+                .contains(&query.to_lowercase())
         })
         .collect()
 }
 
-fn format_result(collection_name: &str, track: &Value) -> String {
-    let artists: Vec<&str> = track["artists"]
-        .as_array()
-        .unwrap()
+fn format_result(collection_name: &str, track_meta: &TrackMeta) -> String {
+    let artists: Vec<String> = track_meta
+        .track
+        .artists
         .iter()
-        .map(|artist| artist["name"].as_str().unwrap())
-        .filter(|artist_name| artist_name != &"")
+        .map(|artist| artist.name.clone())
         .collect();
     let artists_label = match artists.is_empty() {
         true => "-".to_string(),
-        false => artists.join(", ")
+        false => artists.join(", "),
     };
     return format!(
         // "{collection}\t{track}\t{artists}"
         "{collection}:   {track}  |  {artists}",
         collection = collection_name,
         artists = artists_label,
-        track = track["name"].as_str().unwrap()
+        track = track_meta.track.name,
     );
 }
 
@@ -70,13 +138,110 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         {
             continue;
         }
-        let contents = fs::read_to_string(path).expect("Something went wrong reading the file");
-        let playlist: Value = serde_json::from_str(contents.as_str())?;
-        let tracks = search_in_tracks(&playlist["tracks"]["items"], &search_query);
+        // println!("Parsing {:?}", path);
+        let contents = fs::read_to_string(&path).expect("Something went wrong reading the file");
+
+        let playlist: Playlist = match serde_json::from_str(&contents) {
+            Ok(val) => val,
+            Err(err) => {
+                println!("Could not parse {:?}: {}", path.file_name().unwrap(), err);
+                continue;
+            }
+        };
+        let tracks = search_in_tracks(&playlist.tracks.items, &search_query);
         for track in tracks {
-            let result_line = format_result(playlist["name"].as_str().unwrap(), track);
+            let result_line = format_result(&playlist.name, track);
             println!("{}", result_line);
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_playlist() {
+        let test_playlist_str = r#"
+            {
+                "name": "my_playlist",
+                "tracks": {
+                    "items": [
+                        {
+                            "added_at": "2010-08-23T10:33:01Z",
+                            "track": {
+                                "name": "My track",
+                                "artists": [
+                                    {
+                                        "name": "My artist"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        "#;
+        let test_playlist: Playlist = serde_json::from_str(&test_playlist_str).unwrap();
+        let expected_playlist = Playlist {
+            name: "my_playlist".to_string(),
+            tracks: TracksPage {
+                items: vec![TrackMeta {
+                    added_at: "2010-08-23T10:33:01Z".to_string(),
+                    track: Track {
+                        name: "My track".to_string(),
+                        artists: vec![Artist {
+                            name: "My artist".to_string(),
+                        }],
+                    },
+                }],
+            },
+        };
+        assert_eq!(test_playlist, expected_playlist)
+    }
+
+    #[test]
+    fn parse_track_without_artists() {
+        let test_track_str = r#"
+            {
+                "name": "My track",
+                "artists": [
+                    {
+                        "name": ""
+                    }
+                ]
+            }
+        "#;
+        let test_track: Track = serde_json::from_str(&test_track_str).unwrap();
+        assert_eq!(test_track.artists.len(), 0)
+    }
+
+    #[test]
+    fn parse_tracks_page_exclude_null_tracks() {
+        let test_tracks_page_str = r#"
+            {
+                "items": [
+                    {
+                        "added_at": "1970-01-01T00:00:00Z",
+                        "track": null
+                    },
+                    {
+                        "added_at": "2010-08-23T10:33:01Z",
+                        "track": {
+                            "name": "My track",
+                            "artists": [
+                                {
+                                    "name": "My artist"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        "#;
+        let test_tracks_page: TracksPage = serde_json::from_str(&test_tracks_page_str).unwrap();
+        assert_eq!(test_tracks_page.items.len(), 1);
+        assert_eq!(test_tracks_page.items[0].track.name, "My track");
+    }
 }
