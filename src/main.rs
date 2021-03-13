@@ -107,10 +107,13 @@ fn normalize_keyword(value: &str) -> String {
         .to_lowercase()
         .replace("$", "s")
         .replace("&", "and");
-    for skip_char in " ~/-_+*.:;!`'\"()[]{}".chars() {
+    // Remove chars that often appear inside words (e.g. "P.O.W.E.R")
+    for skip_char in "-*.:'".chars() {
         value = value.replace(skip_char, "");
     }
-    value
+    // Normalize spaces
+    let words: Vec<&str> = value.split_whitespace().collect();
+    words.join(" ")
 }
 
 fn truncate_chars(value: &str, max: usize) -> String {
@@ -315,8 +318,8 @@ mod tests {
     #[test]
     fn normalize_track_name() {
         assert_eq!(
-            normalize_keyword(r#"There's  "A T*i*t*l*e" —–- (Günther & $imon Remix)"#),
-            normalize_keyword("theres a title gunther and simon remix")
+            normalize_keyword(r#"There's  "A T*i*t*l*e" —–- Gün-ther &  $imon Remix"#),
+            normalize_keyword(r#"theres "a title" gunther and simon remix"#)
         );
     }
 }
