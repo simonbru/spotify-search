@@ -1,12 +1,12 @@
-#[macro_use]
-extern crate clap;
-
 use std::env;
 use std::fs;
 use std::path::Path;
 
+#[macro_use]
+extern crate clap;
 use clap::{App, Arg};
 use serde::{Deserialize, Deserializer};
+use unidecode::unidecode;
 
 mod config;
 
@@ -85,14 +85,32 @@ where
 fn search_in_tracks<'a>(tracks: &'a Vec<TrackMeta>, query: &str) -> Vec<&'a TrackMeta> {
     tracks
         .iter()
-        .filter(|track_meta| {
-            track_meta
-                .track
-                .name
-                .to_lowercase()
-                .contains(&query.to_lowercase())
-        })
+        .filter(|track_meta| match_track(&track_meta.track, query))
         .collect()
+}
+
+fn match_track(track: &Track, keyword: &str) -> bool {
+    let keyword = normalize_keyword(keyword);
+    if normalize_keyword(&track.name).contains(&keyword) {
+        return true;
+    }
+    for artist in &track.artists {
+        if normalize_keyword(&artist.name).contains(&keyword) {
+            return true;
+        }
+    }
+    false
+}
+
+fn normalize_keyword(value: &str) -> String {
+    let mut value = unidecode(value)
+        .to_lowercase()
+        .replace("$", "s")
+        .replace("&", "and");
+    for skip_char in " ~/-_+*.:;!`'\"()[]{}".chars() {
+        value = value.replace(skip_char, "");
+    }
+    value
 }
 
 fn truncate_chars(value: &str, max: usize) -> String {
@@ -292,5 +310,13 @@ mod tests {
         let test_tracks_page: TracksPage = serde_json::from_str(&test_tracks_page_str).unwrap();
         assert_eq!(test_tracks_page.items.len(), 1);
         assert_eq!(test_tracks_page.items[0].track.name, "My track");
+    }
+
+    #[test]
+    fn normalize_track_name() {
+        assert_eq!(
+            normalize_keyword(r#"There's  "A T*i*t*l*e" —–- (Günther & $imon Remix)"#),
+            normalize_keyword("theres a title gunther and simon remix")
+        );
     }
 }
