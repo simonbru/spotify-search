@@ -1,8 +1,11 @@
+#[macro_use]
+extern crate clap;
+
 use std::env;
 use std::fs;
 use std::path::Path;
-use std::process;
 
+use clap::{App, Arg};
 use serde::{Deserialize, Deserializer};
 
 mod config;
@@ -124,36 +127,40 @@ fn format_result(collection_name: &str, track_meta: &TrackMeta) -> String {
     );
 }
 
-fn get_args() -> Option<(String, String)> {
-    let args: Vec<String> = env::args().collect();
-    match args.as_slice() {
-        [executable, search_query, ..] => Some((executable.clone(), search_query.clone())),
-        _ => None,
-    }
+fn parse_args<'a>() -> clap::ArgMatches<'a> {
+    let app = App::new("spotify-search")
+        .version(crate_version!())
+        .about("Search for tracks in JSON files produced by simonbru/spotify-backup.")
+        .arg(Arg::with_name("KEYWORD").required(true).index(1))
+        .arg(
+            Arg::with_name("library_path")
+                .short("p")
+                .long("path")
+                .value_name("LIBRARY_PATH")
+                .help("Path of folder containing Spotify backup.")
+                .takes_value(true)
+                .default_value(config::DEFAULT_LIBRARY_DIR),
+        );
+    app.get_matches()
 }
 
 fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
-    let (_, search_query) = match get_args() {
-        Some(args) => args,
-        None => {
-            println!("Usage: spotify-search KEYWORD");
-            process::exit(1);
-        }
-    };
+    let matches = parse_args();
+    let library_path = Path::new(matches.value_of("library_path").unwrap());
+    let search_query = matches.value_of("KEYWORD").unwrap();
 
     println!("COLLECTION:   TRACK  |  ARTISTS");
     println!("-------------------------------");
     // Search tracks in library
     let search_in_library = || {
-        let path = Path::new(config::LIBRARY_DIR).join("tracks.json");
+        let path = Path::new(library_path).join("tracks.json");
 
-        // println!("Parsing {:?}", path);
-        let contents = fs::read_to_string(&path).expect("Something went wrong reading the file");
+        let contents = fs::read_to_string(&path).expect(&format!("Could not read {:?}", path));
 
         let tracks: LibraryTracks = match serde_json::from_str(&contents) {
             Ok(val) => val,
             Err(err) => {
-                println!("Could not parse {:?}: {}", path.file_name().unwrap(), err);
+                eprintln!("Could not parse {:?}: {}", path.file_name().unwrap(), err);
                 return;
             }
         };
@@ -166,7 +173,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     search_in_library();
 
     // Search tracks in playlists
-    let playlist_dir = Path::new(config::LIBRARY_DIR).join("playlists");
+    let playlist_dir = Path::new(library_path).join("playlists");
     for entry in fs::read_dir(playlist_dir).unwrap() {
         let entry = entry.unwrap();
         let path = entry.path();
@@ -177,12 +184,12 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
             continue;
         }
         // println!("Parsing {:?}", path);
-        let contents = fs::read_to_string(&path).expect("Something went wrong reading the file");
+        let contents = fs::read_to_string(&path).expect(&format!("Could not read {:?}", path));
 
         let playlist: Playlist = match serde_json::from_str(&contents) {
             Ok(val) => val,
             Err(err) => {
-                println!("Could not parse {:?}: {}", path.file_name().unwrap(), err);
+                eprintln!("Could not parse {:?}: {}", path.file_name().unwrap(), err);
                 continue;
             }
         };
