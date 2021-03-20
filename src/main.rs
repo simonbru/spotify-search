@@ -82,24 +82,35 @@ where
     return Ok(track_metas);
 }
 
-fn search_in_tracks<'a>(tracks: &'a Vec<TrackMeta>, query: &str) -> Vec<&'a TrackMeta> {
+fn search_in_tracks<'a>(tracks: &'a Vec<TrackMeta>, keywords: &Vec<&str>) -> Vec<&'a TrackMeta> {
     tracks
         .iter()
-        .filter(|track_meta| match_track(&track_meta.track, query))
+        .filter(|track_meta| match_track(&track_meta.track, keywords))
         .collect()
 }
 
-fn match_track(track: &Track, keyword: &str) -> bool {
-    let keyword = normalize_keyword(keyword);
-    if normalize_keyword(&track.name).contains(&keyword) {
-        return true;
-    }
-    for artist in &track.artists {
-        if normalize_keyword(&artist.name).contains(&keyword) {
+fn match_track(track: &Track, keywords: &Vec<&str>) -> bool {
+    let track_name = normalize_keyword(&track.name);
+    let artist_names: Vec<String> = track
+        .artists
+        .iter()
+        .map(|artist| normalize_keyword(&artist.name))
+        .collect();
+
+    let contains_keyword = |raw_keyword: &str| {
+        let keyword = normalize_keyword(raw_keyword);
+        if track_name.contains(&keyword) {
             return true;
         }
-    }
-    false
+        for artist_name in &artist_names {
+            if artist_name.contains(&keyword) {
+                return true;
+            }
+        }
+        false
+    };
+
+    keywords.iter().all(|keyword| contains_keyword(keyword))
 }
 
 fn normalize_keyword(value: &str) -> String {
@@ -152,7 +163,12 @@ fn parse_args<'a>() -> clap::ArgMatches<'a> {
     let app = App::new("spotify-search")
         .version(crate_version!())
         .about("Search for tracks in JSON files produced by simonbru/spotify-backup.")
-        .arg(Arg::with_name("KEYWORD").required(true).index(1))
+        .arg(
+            Arg::with_name("KEYWORDS")
+                .required(true)
+                .multiple(true)
+                .help("Keywords that must all be part of the track's title or artists."),
+        )
         .arg(
             Arg::with_name("library_path")
                 .short("p")
@@ -168,7 +184,7 @@ fn parse_args<'a>() -> clap::ArgMatches<'a> {
 fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let matches = parse_args();
     let library_path = Path::new(matches.value_of("library_path").unwrap());
-    let search_query = matches.value_of("KEYWORD").unwrap();
+    let search_keywords: Vec<&str> = matches.values_of("KEYWORDS").unwrap().collect();
 
     println!("COLLECTION:   TRACK  |  ARTISTS");
     println!("-------------------------------");
@@ -185,7 +201,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
                 return;
             }
         };
-        let tracks = search_in_tracks(&tracks, &search_query);
+        let tracks = search_in_tracks(&tracks, &search_keywords);
         for track in tracks {
             let result_line = format_result("Library", track);
             println!("{}", result_line);
@@ -214,7 +230,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
                 continue;
             }
         };
-        let tracks = search_in_tracks(&playlist.tracks.items, &search_query);
+        let tracks = search_in_tracks(&playlist.tracks.items, &search_keywords);
         for track in tracks {
             let result_line = format_result(&playlist.name, track);
             println!("{}", result_line);
