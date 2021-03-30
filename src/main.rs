@@ -338,4 +338,11 @@ mod tests {
             normalize_keyword(r#"theres "a title" gunther and simon remix"#)
         );
     }
+
+    #[test]
+    fn playground() {
+        // println!("{}", unidecode("&$*-,"));
+        let words: Vec<&str> = " as    jfd ja asd".split_whitespace().collect();
+        dbg!(words.join(" "));
+    }
 }

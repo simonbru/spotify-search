@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Spotify Search</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script type="module">
+      import { createMainApp } from "/static/components.js";
+      createMainApp().mount("#app-container");
+    </script>
+  </head>
+  <body>
+    <div id="app-container"></div>
+    <script type="x-template" id="App">
+      <h1>Spotify Search</h1>
+      <Counter/>
+    </script>
+    <script type="x-template" id="Counter">
+      <div>
+        <input placeholder="Search terms..." class="search-input">
+      </div>
+      <div class="container mrgt+">
+        Counter: {{ counter }}
+        <Label>Je suis un label</Label>
+        <div class="mrgt+">
+          <div v-for="track in items" class="row">
+            <div class="cell"><img :src="track.thumbnail" height="48"></div>
+            <div class="cell">{{ track.title }}</div>
+            <div class="cell">{{ track.artist }}</div>
+          </div>
+        </div>
+      </div>
+    </script>
+  </body>
+</html>
