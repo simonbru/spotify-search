@@ -56,7 +56,7 @@ fn search_view(params: SearchQueryParams) -> warp::reply::Json {
 }
 
 #[tokio::main]
-async fn main() {
+pub async fn serve_web_ui() {
     // pretty_env_logger::init();
 
     let search = warp::path!("api" / "search")

@@ -4,9 +4,6 @@ version = "0.5.0"
 authors = ["Simon Brulhart <simon@brulhart.me>"]
 edition = "2018"
 
-# [[bin]]
-# name = "spotify-search-web"
-
 [dependencies]
 clap = "2.33"
 rust-embed = "5"
