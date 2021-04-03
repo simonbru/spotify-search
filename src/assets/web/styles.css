@@ -10,6 +10,14 @@ h1 {
     margin-top: 24px;
 }
 
+a {
+    color: white;
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+}
+
 .container {
     background-color: #121212;
     padding: 24px;

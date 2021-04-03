@@ -1,10 +1,15 @@
 use rust_embed::RustEmbed;
 use serde::{Deserialize, Serialize};
+use std::path::Path;
 use warp::Filter;
+
+use super::search;
 
 #[derive(RustEmbed)]
 #[folder = "src/assets/web"]
 struct Asset;
+
+const SEARCH_PAGE_SIZE: usize = 25;
 
 fn guess_mime_type(filename: &str) -> Option<&str> {
     match filename {
@@ -46,23 +51,65 @@ struct SearchQueryParams {
 }
 
 #[derive(Serialize)]
-struct SearchResults {
-    hello: String,
+struct SearchResponseItem {
+    title: String,
+    artists: Vec<String>,
+    uri: String,
+    collection: String,
+    thumbnail_url: Option<String>,
 }
 
-fn search_view(params: SearchQueryParams) -> warp::reply::Json {
-    let response = SearchResults { hello: params.q };
+#[derive(Serialize)]
+struct SearchResponse {
+    items: Vec<SearchResponseItem>,
+    total: usize,
+}
+
+fn search_view(library_path: &Path, params: SearchQueryParams) -> warp::reply::Json {
+    let keywords: Vec<&str> = params.q.split_whitespace().collect();
+    let results = search::search(&library_path, &keywords);
+    // TODO: add pagination (or "retrieve all")
+    let response = SearchResponse {
+        total: results.len(),
+        items: results
+            .into_iter()
+            .take(SEARCH_PAGE_SIZE)
+            .map(|result| SearchResponseItem {
+                title: result.track.track.name,
+                artists: result
+                    .track
+                    .track
+                    .artists
+                    .into_iter()
+                    .map(|artist| artist.name)
+                    .collect(),
+                uri: result.track.track.uri,
+                collection: result.collection,
+                thumbnail_url: result
+                    .track
+                    .track
+                    .album
+                    .images
+                    .into_iter()
+                    .min_by_key(|item| item.height)
+                    .map(|item| item.url),
+            })
+            .collect(),
+    };
     warp::reply::json(&response)
 }
 
 #[tokio::main]
-pub async fn serve_web_ui() {
+pub async fn serve_web_ui(library_path: &Path) {
     // pretty_env_logger::init();
-
+    let search_view_closure = {
+        let library_path = library_path.to_owned();
+        move |params| search_view(&library_path, params)
+    };
     let search = warp::path!("api" / "search")
         .and(warp::get())
         .and(warp::query())
-        .map(search_view);
+        .map(search_view_closure);
 
     // let readme = warp::get()
     //     .and(warp::path::end())

@@ -10,9 +10,23 @@ pub struct Artist {
 }
 
 #[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
+pub struct Image {
+    pub height: i32,
+    pub width: i32,
+    pub url: String,
+}
+
+#[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
+pub struct Album {
+    pub name: String,
+    pub images: Vec<Image>,
+}
+
+#[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
 pub struct Track {
     pub uri: String,
     pub name: String,
+    pub album: Album,
 
     #[serde(deserialize_with = "exclude_invalid_artists")]
     pub artists: Vec<Artist>,
@@ -137,7 +151,7 @@ fn search_in_tracks(
         .collect()
 }
 
-pub fn search(library_path: &Path, search_keywords: Vec<&str>) -> Vec<SearchResult> {
+pub fn search(library_path: &Path, search_keywords: &[&str]) -> Vec<SearchResult> {
     // TODO: Hoist all those panics
     let mut results: Vec<SearchResult> = vec![];
 
