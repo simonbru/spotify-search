@@ -10,8 +10,7 @@ use super::search;
 struct Asset;
 
 const SEARCH_PAGE_SIZE: usize = 25;
-const FALLBACK_ALBUM_THUMBNAIL_URL: &str =
-    "https://open.scdn.co/cdn/images/tracklist-row-song-fallback.4db3ccfe.svg";
+const FALLBACK_ALBUM_THUMBNAIL_URL: &str = "/static/fallback-cover.svg";
 
 fn guess_mime_type(filename: &str) -> Option<&str> {
     match filename {
