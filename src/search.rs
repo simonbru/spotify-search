@@ -218,7 +218,11 @@ mod tests {
                                     {
                                         "name": "My artist"
                                     }
-                                ]
+                                ],
+                                "album": {
+                                    "name": "My album",
+                                    "images": []
+                                }
                             }
                         }
                     ]
@@ -237,6 +241,10 @@ mod tests {
                         artists: vec![Artist {
                             name: "My artist".to_string(),
                         }],
+                        album: Album {
+                            name: "My album".to_string(),
+                            images: vec![],
+                        }
                     },
                 }],
             },
@@ -254,7 +262,11 @@ mod tests {
                     {
                         "name": ""
                     }
-                ]
+                ],
+                "album": {
+                    "name": "Album",
+                    "images": []
+                }
             }
         "#;
         let test_track: Track = serde_json::from_str(&test_track_str).unwrap();
@@ -279,7 +291,11 @@ mod tests {
                                 {
                                     "name": "My artist"
                                 }
-                            ]
+                            ],
+                            "album": {
+                                "name": "Album",
+                                "images": []
+                            }
                         }
                     }
                 ]

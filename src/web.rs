@@ -10,12 +10,15 @@ use super::search;
 struct Asset;
 
 const SEARCH_PAGE_SIZE: usize = 25;
+const FALLBACK_ALBUM_THUMBNAIL_URL: &str =
+    "https://open.scdn.co/cdn/images/tracklist-row-song-fallback.4db3ccfe.svg";
 
 fn guess_mime_type(filename: &str) -> Option<&str> {
     match filename {
         _ if filename.ends_with(".css") => Some("text/css"),
         _ if filename.ends_with(".js") => Some("application/javascript"),
         _ if filename.ends_with(".html") => Some("text/html"),
+        _ if filename.ends_with(".svg") => Some("image/svg+xml"),
         _ => None,
     }
 }
@@ -56,7 +59,7 @@ struct SearchResponseItem {
     artists: Vec<String>,
     uri: String,
     collection: String,
-    thumbnail_url: Option<String>,
+    thumbnail_url: String,
 }
 
 #[derive(Serialize)]
@@ -92,7 +95,8 @@ fn search_view(library_path: &Path, params: SearchQueryParams) -> warp::reply::J
                     .images
                     .into_iter()
                     .min_by_key(|item| item.height)
-                    .map(|item| item.url),
+                    .map(|item| item.url)
+                    .unwrap_or(FALLBACK_ALBUM_THUMBNAIL_URL.to_owned()),
             })
             .collect(),
     };
@@ -101,7 +105,6 @@ fn search_view(library_path: &Path, params: SearchQueryParams) -> warp::reply::J
 
 #[tokio::main]
 pub async fn serve_web_ui(library_path: &Path) {
-    // pretty_env_logger::init();
     let search_view_closure = {
         let library_path = library_path.to_owned();
         move |params| search_view(&library_path, params)
@@ -110,13 +113,6 @@ pub async fn serve_web_ui(library_path: &Path) {
         .and(warp::get())
         .and(warp::query())
         .map(search_view_closure);
-
-    // let readme = warp::get()
-    //     .and(warp::path::end())
-    //     .and(warp::fs::file("./README.md"));
-
-    // dir already requires GET...
-    // let examples = warp::path("ex").and(warp::fs::dir("./examples/"));
 
     let assets = warp::path("static")
         .and(warp::path::tail())
@@ -127,8 +123,6 @@ pub async fn serve_web_ui(library_path: &Path) {
         .and_then(assets_index_view);
 
     let routes = assets_index.or(assets).or(search);
-
-    // let routes = routes.with(warp::log("blabla"));
 
     println!("Listening on http://127.0.0.1:3030");
     warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
