@@ -12,30 +12,5 @@
   </head>
   <body>
     <div id="app-container"></div>
-    <script type="x-template" id="App">
-      <h1>Spotify Search</h1>
-      <div>
-        <form @submit.prevent="fetchResults(form.query)">
-          <input v-model="form.query" placeholder="Search terms..." class="search-input">
-        </form>
-      </div>
-      <SearchResults :items="results.items"/>
-    </script>
-    <script type="x-template" id="SearchResults">
-      <div class="container mrgt+">
-        <Label>Search results</Label>
-        <div class="mrgt+">
-          <SearchResult v-if="items" v-for="item in items" v-bind="item" class="row"/>
-        </div>
-      </div>
-    </script>
-    <script type="x-template" id="SearchResult">
-      <div class="row">
-        <div class="cell"><img :src="thumbnail_url" height="48" width="48"></div>
-        <div class="cell"><a :href="uri">{{ title }}</a></div>
-        <div class="cell">{{ artistsLabel }}</div>
-        <div class="cell">{{ collection }}</div>
-      </div>
-    </script>
   </body>
 </html>
