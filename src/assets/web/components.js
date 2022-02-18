@@ -1,5 +1,10 @@
 // TODO: Use prod module in "release" mode ?
-import { createApp } from "/static/vendor/vue@3.2.31/vue.esm-browser.js";
+import {
+  createApp,
+  onMounted,
+  reactive,
+  ref,
+} from "/static/vendor/vue@3.2.31/vue.esm-browser.js";
 
 export function createMainApp() {
   const app = createApp(App);
@@ -14,29 +19,28 @@ export const App = {
   template: `
     <h1>Spotify Search</h1>
     <div>
-      <form @submit.prevent="fetchResults(form.query)">
-        <input v-model="form.query" placeholder="Search terms..." class="search-input">
+      <form @submit.prevent="fetchResults">
+        <input v-model="formData.query" placeholder="Search terms..." class="search-input">
       </form>
     </div>
     <SearchResults :items="results.items"/>
   `,
-  data() {
-    return {
-      form: {
-        query: "",
-      },
-      results: {},
-    };
-  },
-  async mounted() {
-    await this.fetchResults("");
-  },
-  methods: {
-    async fetchResults(query) {
+  setup() {
+    const formData = reactive({ query: "" });
+    const results = ref([]);
+
+    const fetchResults = async () => {
+      const query = formData.query;
       // TODO: escape query
       const response = await fetch(`/api/search?q=${query}`);
-      this.results = await response.json();
-    },
+      results.value = await response.json();
+    };
+
+    onMounted(() => {
+      fetchResults();
+    });
+
+    return { fetchResults, formData, results };
   },
 };
 
@@ -88,3 +92,9 @@ export const SearchResult = {
     },
   },
 };
+
+// TODO: display result in table
+// TODO: "show more" ? More results in list ?
+// TODO: lazy loading of images
+// TODO: auto search with debounce ?
+// TODO: improve styling
