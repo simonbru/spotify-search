@@ -1,20 +1,8 @@
 // TODO: Use prod module in "release" mode ?
 import {
-  createApp,
   onMounted,
   reactive,
-  ref,
 } from "/static/vendor/vue@3.2.31/vue.esm-browser.js";
-
-export function createMainApp() {
-  const app = createApp(App);
-  app.component("Label", Label);
-  app.component("SearchResults", SearchResults);
-  app.component("SearchResult", SearchResult);
-  app.component("SearchResultSkeleton", SearchResultSkeleton);
-  app.component("Skeleton", Skeleton);
-  return app;
-}
 
 export const App = {
   name: "App",
@@ -44,9 +32,8 @@ export const App = {
       results.error = null;
 
       try {
-        const query = formData.query;
-        // TODO: escape query
-        const response = await fetch(`/api/search?q=${query}`, {
+        const params = new URLSearchParams({ q: formData.query });
+        const response = await fetch(`/api/search?${params}`, {
           signal: abortController.signal,
         });
         results.data = await response.json();
@@ -77,7 +64,6 @@ export const Label = {
 };
 
 export const SearchResults = {
-  name: "SearchResults",
   template: `
     <div class="container mrgt+">
       <Label>Search results</Label>
@@ -102,10 +88,11 @@ export const SearchResults = {
 };
 
 export const SearchResult = {
-  name: "SearchResult",
   template: `
     <div class="row">
-      <div class="cell"><img :src="thumbnail_url" height="48" width="48"></div>
+      <div class="cell">
+        <LazyImage :src="thumbnail_url" height="48" width="48" />
+      </div>
       <div class="cell"><a :href="uri">{{ title }}</a></div>
       <div class="cell">{{ artistsLabel }}</div>
       <div class="cell">{{ collection }}</div>
@@ -129,7 +116,6 @@ export const SearchResult = {
 };
 
 export const SearchResultSkeleton = {
-  name: "SearchResultSkeleton",
   template: `
     <div class="row">
       <div class="cell">
@@ -149,7 +135,6 @@ export const SearchResultSkeleton = {
 };
 
 export const Skeleton = {
-  name: "Skeleton",
   template: `
     <div class="skeleton" :style="{ height, width }"></div>
   `,
@@ -165,11 +150,11 @@ export const Skeleton = {
   },
 };
 
-// TODO: show link for track in playlist
-// TODO: show more colums
+// TODO: link for track in playlist
+// TODO: more columns
 // TODO: show title and artist in the same column
 // TODO: "show more" ? More results in list ?
 // TODO: sort items by column
-// TODO: show links for playlist
-// TODO: lazy loading of images
+// TODO: optimize results.data with shallowReactive ?
+// TODO: links for playlist
 // TODO: improve styling
