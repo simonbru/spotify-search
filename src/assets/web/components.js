@@ -57,7 +57,7 @@ export const SearchResults = {
     <div class="container mrgt+">
       <Label>Search results</Label>
       <div class="mrgt+">
-        <SearchResult v-if="items" v-for="item in items" v-bind="item" class="row"/>
+        <SearchResult v-for="item in items" v-bind="item" class="row"/>
       </div>
     </div>
   `,
@@ -94,7 +94,13 @@ export const SearchResult = {
 };
 
 // TODO: display result in table
+// TODO: show link for track in playlist
+// TODO: show more colums
+// TODO: show title and artist in the same column
+// TODO: show loader
 // TODO: "show more" ? More results in list ?
+// TODO: sort items by column
+// TODO: show links for playlist
 // TODO: lazy loading of images
 // TODO: auto search with debounce ?
 // TODO: improve styling

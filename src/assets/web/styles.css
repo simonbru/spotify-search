@@ -32,23 +32,18 @@ a:hover {
 }
 
 .row {
-    display: flex;
-    align-items: center;
-    margin-bottom: 24px;
+    display: grid;
+    grid-template-columns: [cover] auto [title] 6fr [artist] 4fr [playlist] 4fr;
+    grid-gap: 16px;
+    margin-bottom: 16px;
 }
 .row:last-child {
     margin-bottom: 0;
 }
 
 .cell {
-    margin-left: 12px;
-    margin-right: 12px; 
-}
-.cell:first-child {
-    margin-left: 0;
-}
-.cell:last-child {
-    margin-right: 0;
+    display: flex;
+    align-items: center;
 }
 
 .search-input {
