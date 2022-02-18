@@ -11,6 +11,8 @@ export function createMainApp() {
   app.component("Label", Label);
   app.component("SearchResults", SearchResults);
   app.component("SearchResult", SearchResult);
+  app.component("SearchResultSkeleton", SearchResultSkeleton);
+  app.component("Skeleton", Skeleton);
   return app;
 }
 
@@ -23,17 +25,31 @@ export const App = {
         <input v-model="formData.query" placeholder="Search terms..." class="search-input">
       </form>
     </div>
-    <SearchResults :items="results.items"/>
+    <SearchResults v-bind="results" />
   `,
   setup() {
     const formData = reactive({ query: "" });
-    const results = ref([]);
+    const results = reactive({
+      loading: false,
+      error: null,
+      data: null,
+    });
 
     const fetchResults = async () => {
-      const query = formData.query;
-      // TODO: escape query
-      const response = await fetch(`/api/search?q=${query}`);
-      results.value = await response.json();
+      results.loading = true;
+      results.error = null;
+
+      try {
+        const query = formData.query;
+        // TODO: escape query
+        const response = await fetch(`/api/search?q=${query}`);
+        results.data = await response.json();
+      } catch (err) {
+        results.error = err;
+        throw err;
+      } finally {
+        results.loading = false;
+      }
     };
 
     onMounted(() => {
@@ -57,12 +73,22 @@ export const SearchResults = {
     <div class="container mrgt+">
       <Label>Search results</Label>
       <div class="mrgt+">
-        <SearchResult v-for="item in items" v-bind="item" class="row"/>
+        <template v-if="loading">
+          <SearchResultSkeleton v-for="n in 10"/>
+        </template>
+        <template v-else-if="error">
+          <em>Failed to retrieve results.</em>
+        </template>
+        <template v-else-if="data">
+          <SearchResult v-for="item in data.items" v-bind="item"/>
+        </template>
       </div>
     </div>
   `,
   props: {
-    items: Array,
+    error: Error,
+    loading: Boolean,
+    data: Object,
   },
 };
 
@@ -93,14 +119,49 @@ export const SearchResult = {
   },
 };
 
-// TODO: display result in table
+export const SearchResultSkeleton = {
+  name: "SearchResultSkeleton",
+  template: `
+    <div class="row">
+      <div class="cell">
+        <Skeleton height="48px" width="48px" />
+      </div>
+      <div class="cell">
+        <Skeleton width="60%" />
+      </div>
+      <div class="cell">
+        <Skeleton width="60%" />
+      </div>
+      <div class="cell">
+        <Skeleton width="60%" />
+      </div>
+    </div>
+  `,
+};
+
+export const Skeleton = {
+  name: "Skeleton",
+  template: `
+    <div class="skeleton" :style="{ height, width }"></div>
+  `,
+  props: {
+    height: {
+      type: String,
+      default: "16px", // default font size
+    },
+    width: {
+      type: String,
+      default: "100px",
+    },
+  },
+};
+
 // TODO: show link for track in playlist
 // TODO: show more colums
 // TODO: show title and artist in the same column
-// TODO: show loader
 // TODO: "show more" ? More results in list ?
 // TODO: sort items by column
 // TODO: show links for playlist
 // TODO: lazy loading of images
-// TODO: auto search with debounce ?
+// TODO: cancel previous request
 // TODO: improve styling
