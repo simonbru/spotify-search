@@ -35,20 +35,29 @@ export const App = {
       data: null,
     });
 
+    let abortController;
+
     const fetchResults = async () => {
+      abortController?.abort();
+      abortController = new AbortController();
       results.loading = true;
       results.error = null;
 
       try {
         const query = formData.query;
         // TODO: escape query
-        const response = await fetch(`/api/search?q=${query}`);
+        const response = await fetch(`/api/search?q=${query}`, {
+          signal: abortController.signal,
+        });
         results.data = await response.json();
-      } catch (err) {
-        results.error = err;
-        throw err;
-      } finally {
         results.loading = false;
+      } catch (err) {
+        if (err.name === "AbortError") {
+          return;
+        }
+        results.error = err;
+        results.loading = false;
+        throw err;
       }
     };
 
@@ -163,5 +172,4 @@ export const Skeleton = {
 // TODO: sort items by column
 // TODO: show links for playlist
 // TODO: lazy loading of images
-// TODO: cancel previous request
 // TODO: improve styling
