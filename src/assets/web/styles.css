@@ -1,5 +1,12 @@
+html {
+  height: 100%;
+}
+
 body {
-  background: black;
+  background-color: #121212;
+  background-image: linear-gradient(to bottom, #052812, #121212 200px);
+  background-repeat: no-repeat;
+
   color: white;
   font-family: Helvetica Neue, helvetica, arial, Hiragino Kaku Gothic Pro,
     Meiryo, MS Gothic, sans-serif;
@@ -21,11 +28,6 @@ a:hover {
 
 img {
   background: #bbb;
-}
-
-.container {
-  background-color: #121212;
-  padding: 24px;
 }
 
 .mrgr {

@@ -65,7 +65,7 @@ export const Label = {
 
 export const SearchResults = {
   template: `
-    <div class="container mrgt+">
+    <div class="mrgt+">
       <Label>Search results</Label>
       <div class="mrgt+">
         <em v-if="error">Failed to retrieve results.</em>
