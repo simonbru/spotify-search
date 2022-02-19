@@ -68,14 +68,20 @@ export const SearchResults = {
     <div class="container mrgt+">
       <Label>Search results</Label>
       <div class="mrgt+">
-        <template v-if="loading">
-          <SearchResultSkeleton v-for="n in 10"/>
-        </template>
-        <template v-else-if="error">
-          <em>Failed to retrieve results.</em>
-        </template>
-        <template v-else-if="data">
-          <SearchResult v-for="item in data.items" v-bind="item"/>
+        <em v-if="error">Failed to retrieve results.</em>
+        <template v-else>
+          <div class="row row--header">
+            <div class="cell">TRACK</div>
+            <div class="cell">ARTISTS</div>
+            <div class="cell">COLLECTION</div>
+          </div>
+
+          <template v-if="loading">
+            <SearchResultSkeleton v-for="n in 10"/>
+          </template>
+          <template v-else-if="data">
+            <SearchResult v-for="item in data.items" v-bind="item"/>
+          </template>
         </template>
       </div>
     </div>
@@ -91,9 +97,9 @@ export const SearchResult = {
   template: `
     <div class="row">
       <div class="cell">
-        <LazyImage :src="thumbnail_url" height="48" width="48" />
+        <LazyImage :src="thumbnail_url" height="48" width="48" class="mrgr" />
+        <a :href="uri">{{ title }}</a>
       </div>
-      <div class="cell"><a :href="uri">{{ title }}</a></div>
       <div class="cell">{{ artistsLabel }}</div>
       <div class="cell">{{ collection }}</div>
     </div>
@@ -119,9 +125,7 @@ export const SearchResultSkeleton = {
   template: `
     <div class="row">
       <div class="cell">
-        <Skeleton height="48px" width="48px" />
-      </div>
-      <div class="cell">
+        <Skeleton height="48px" width="48px" class="mrgr" />
         <Skeleton width="60%" />
       </div>
       <div class="cell">

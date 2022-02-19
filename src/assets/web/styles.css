@@ -28,8 +28,8 @@ img {
   padding: 24px;
 }
 
-.mrgt {
-  margin-top: 12px;
+.mrgr {
+  margin-right: 16px;
 }
 
 .mrgt\+ {
@@ -38,12 +38,18 @@ img {
 
 .row {
   display: grid;
-  grid-template-columns: [cover] auto [title] 6fr [artist] 4fr [playlist] 4fr;
+  grid-template-columns: [title] 6fr [artist] 4fr [playlist] 4fr;
   grid-gap: 16px;
   margin-bottom: 16px;
 }
 .row:last-child {
   margin-bottom: 0;
+}
+
+.row--header {
+  padding-bottom: 8px;
+  margin-bottom: 24px;
+  border-bottom: solid 1px #333;
 }
 
 .cell {
