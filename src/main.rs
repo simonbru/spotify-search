@@ -74,7 +74,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let use_web_ui = matches.is_present("web");
 
     if use_web_ui {
-        web::serve_web_ui(library_path);
+        web::serve_web_ui(library_path, &search_keywords);
     } else {
         let results = search::search(library_path, &search_keywords);
         println!("COLLECTION:   TRACK  |  ARTISTS");

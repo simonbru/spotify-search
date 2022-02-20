@@ -130,7 +130,7 @@ fn search_view(library_path: &Path, params: SearchQueryParams) -> warp::reply::J
 }
 
 #[tokio::main]
-pub async fn serve_web_ui(library_path: &Path) {
+pub async fn serve_web_ui(library_path: &Path, search_keywords: &[&str]) {
     let search_view_closure = {
         let library_path = library_path.to_owned();
         move |params| search_view(&library_path, params)
@@ -155,6 +155,8 @@ pub async fn serve_web_ui(library_path: &Path) {
 
     let routes = assets_index.or(assets).or(search).or(import_map);
 
-    println!("Listening on http://127.0.0.1:3030");
+    let query = search_keywords.join(" ");
+    let query_params = serde_urlencoded::to_string([("q", query)]).unwrap();
+    println!("Go to http://localhost:3030/?{query_params}");
     warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
 }

@@ -12,7 +12,9 @@ export const App = {
     <SearchResults v-bind="results" />
   `,
   setup() {
-    const formData = reactive({ query: "" });
+    const initialParams = new URLSearchParams(window.location.search);
+
+    const formData = reactive({ query: initialParams.get("q") || "" });
     const results = reactive({
       query: "",
       loading: false,
@@ -175,7 +177,7 @@ export const Skeleton = {
   },
 };
 
-// TODO: more columns
+// TODO: more columns (e.g. "added at", "album", "index in playlist")
 // TODO: show title and artist in the same column
 // TODO: sort items by column
 // TODO: submit button or debounce ? if debounce, how to handle url changes ?
