@@ -89,7 +89,6 @@ struct SearchResponse {
 fn search_view(library_path: &Path, params: SearchQueryParams) -> warp::reply::Json {
     let keywords: Vec<&str> = params.q.split_whitespace().collect();
     let results = search::search(&library_path, &keywords);
-    // TODO: add pagination (or "retrieve all")
     let response = SearchResponse {
         total: results.len(),
         items: results

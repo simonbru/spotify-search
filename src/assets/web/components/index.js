@@ -173,11 +173,9 @@ export const Skeleton = {
   },
 };
 
-// TODO: link for track in playlist
 // TODO: more columns
 // TODO: show title and artist in the same column
-// TODO: "show more" ? More results in list ?
 // TODO: sort items by column
+// TODO: submit button or debounce
 // TODO: optimize results.data with shallowReactive ?
 // TODO: links for playlist
-// TODO: improve styling
