@@ -1,5 +1,6 @@
 use rust_embed::RustEmbed;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use std::path::Path;
 use warp::Filter;
 
@@ -45,6 +46,24 @@ async fn assets_view(path: warp::path::Tail) -> Result<impl warp::Reply, warp::R
 
 async fn assets_index_view() -> Result<impl warp::Reply, warp::Rejection> {
     serve_asset("index.html")
+}
+
+#[derive(Serialize)]
+struct ImportMap {
+    imports: BTreeMap<String, String>,
+}
+
+fn import_map_view() -> warp::reply::Json {
+    let mut imports = BTreeMap::new();
+    imports.insert(
+        "vue".to_string(),
+        if cfg!(debug_assertions) {
+            "/static/vendor/vue@3.2.31/vue.esm-browser.js".to_string()
+        } else {
+            "/static/vendor/vue@3.2.31/vue.esm-browser.prod.js".to_string()
+        },
+    );
+    warp::reply::json(&ImportMap { imports })
 }
 
 #[derive(Deserialize)]
@@ -113,6 +132,11 @@ pub async fn serve_web_ui(library_path: &Path) {
         .and(warp::query())
         .map(search_view_closure);
 
+    let import_map = warp::path!("import-map.importmap")
+        .and(warp::get())
+        .map(import_map_view)
+        .map(|reply| warp::reply::with_header(reply, "content-type", "application/importmap+json"));
+
     let assets = warp::path("static")
         .and(warp::path::tail())
         .and(warp::get())
@@ -121,7 +145,7 @@ pub async fn serve_web_ui(library_path: &Path) {
         .and(warp::get())
         .and_then(assets_index_view);
 
-    let routes = assets_index.or(assets).or(search);
+    let routes = assets_index.or(assets).or(search).or(import_map);
 
     println!("Listening on http://127.0.0.1:3030");
     warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;

@@ -1,5 +1,4 @@
-// TODO: Use prod module in "release" mode ?
-import { createApp } from "/static/vendor/vue@3.2.31/vue.esm-browser.js";
+import { createApp } from "vue";
 
 import {
   App,

@@ -1,8 +1,4 @@
-// TODO: Use prod module in "release" mode ?
-import {
-  onMounted,
-  reactive,
-} from "/static/vendor/vue@3.2.31/vue.esm-browser.js";
+import { onMounted, reactive } from "vue";
 
 export const App = {
   name: "App",

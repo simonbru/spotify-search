@@ -1,8 +1,4 @@
-import {
-  inject,
-  onMounted,
-  ref,
-} from "/static/vendor/vue@3.2.31/vue.esm-browser.js";
+import { inject, onMounted, ref } from "vue";
 
 const lazyImageKey = Symbol("lazyImageKey");
 
