@@ -61,6 +61,7 @@ img {
 
 .skeleton {
   /* Inspiration: https://codepen.io/havardob/pen/dyGGGzq?editors=1100 */
+  display: inline-block;
   cursor: progress;
   background-color: #bbb;
   /* Vertical white bar of ~40px above grey background */

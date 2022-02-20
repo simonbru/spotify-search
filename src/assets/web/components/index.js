@@ -1,4 +1,4 @@
-import { onMounted, reactive } from "vue";
+import { computed, onMounted, reactive } from "vue";
 
 export const App = {
   name: "App",
@@ -14,6 +14,7 @@ export const App = {
   setup() {
     const formData = reactive({ query: "" });
     const results = reactive({
+      query: "",
       loading: false,
       error: null,
       data: null,
@@ -24,6 +25,8 @@ export const App = {
     const fetchResults = async () => {
       abortController?.abort();
       abortController = new AbortController();
+
+      results.query = formData.query;
       results.loading = true;
       results.error = null;
 
@@ -62,30 +65,50 @@ export const Label = {
 export const SearchResults = {
   template: `
     <div class="mrgt+">
-      <Label>Search results</Label>
-      <div class="mrgt+">
-        <em v-if="error">Failed to retrieve results.</em>
+      <Label>
+        <template v-if="loading">
+          <Skeleton height="16px" width="15em" />
+        </template>
+        <template v-else-if="error">Failed to retrieve results</template>
         <template v-else>
-          <div class="row row--header">
-            <div class="cell">TRACK</div>
-            <div class="cell">ARTISTS</div>
-            <div class="cell">COLLECTION</div>
-          </div>
+          {{ total }} results
+          <template v-if="total > items.length"> ({{ items.length }} displayed)</template>
+          <template v-if="query"> for <em>{{ query }}</em></template>
+        </template>
+      </Label>
 
-          <template v-if="loading">
-            <SearchResultSkeleton v-for="n in 10"/>
-          </template>
-          <template v-else-if="data">
-            <SearchResult v-for="item in data.items" v-bind="item"/>
-          </template>
+      <div v-if="items.length || loading" class="mrgt+">
+        <div class="row row--header">
+          <div class="cell">TRACK</div>
+          <div class="cell">ARTISTS</div>
+          <div class="cell">COLLECTION</div>
+        </div>
+
+        <template v-if="loading">
+          <SearchResultSkeleton v-for="n in 10"/>
+        </template>
+        <template v-else>
+          <SearchResult v-for="item in items" v-bind="item"/>
         </template>
       </div>
     </div>
   `,
   props: {
+    query: {
+      type: String,
+      required: true,
+    },
     error: Error,
-    loading: Boolean,
+    loading: {
+      type: Boolean,
+      default: false,
+    },
     data: Object,
+  },
+  setup(props) {
+    const items = computed(() => props.data?.items ?? []);
+    const total = computed(() => props.data?.total ?? 0);
+    return { items, total };
   },
 };
 
