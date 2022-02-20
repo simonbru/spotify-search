@@ -10,9 +10,23 @@ pub struct Artist {
 }
 
 #[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
+pub struct Image {
+    pub height: i32,
+    pub width: i32,
+    pub url: String,
+}
+
+#[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
+pub struct Album {
+    pub name: String,
+    pub images: Vec<Image>,
+}
+
+#[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
 pub struct Track {
     pub uri: String,
     pub name: String,
+    pub album: Album,
 
     #[serde(deserialize_with = "exclude_invalid_artists")]
     pub artists: Vec<Artist>,
@@ -137,7 +151,7 @@ fn search_in_tracks(
         .collect()
 }
 
-pub fn search(library_path: &Path, search_keywords: Vec<&str>) -> Vec<SearchResult> {
+pub fn search(library_path: &Path, search_keywords: &[&str]) -> Vec<SearchResult> {
     // TODO: Hoist all those panics
     let mut results: Vec<SearchResult> = vec![];
 
@@ -204,7 +218,11 @@ mod tests {
                                     {
                                         "name": "My artist"
                                     }
-                                ]
+                                ],
+                                "album": {
+                                    "name": "My album",
+                                    "images": []
+                                }
                             }
                         }
                     ]
@@ -223,6 +241,10 @@ mod tests {
                         artists: vec![Artist {
                             name: "My artist".to_string(),
                         }],
+                        album: Album {
+                            name: "My album".to_string(),
+                            images: vec![],
+                        }
                     },
                 }],
             },
@@ -240,7 +262,11 @@ mod tests {
                     {
                         "name": ""
                     }
-                ]
+                ],
+                "album": {
+                    "name": "Album",
+                    "images": []
+                }
             }
         "#;
         let test_track: Track = serde_json::from_str(&test_track_str).unwrap();
@@ -265,7 +291,11 @@ mod tests {
                                 {
                                     "name": "My artist"
                                 }
-                            ]
+                            ],
+                            "album": {
+                                "name": "Album",
+                                "images": []
+                            }
                         }
                     }
                 ]
