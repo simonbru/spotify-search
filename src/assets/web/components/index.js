@@ -67,7 +67,7 @@ export const SearchResults = {
     <div class="mrgt+">
       <Label>
         <template v-if="loading">
-          <Skeleton height="16px" width="15em" />
+          <Skeleton width="15em" />
         </template>
         <template v-else-if="error">Failed to retrieve results</template>
         <template v-else>
@@ -164,11 +164,11 @@ export const Skeleton = {
   props: {
     height: {
       type: String,
-      default: "16px", // default font size
+      default: "1em",
     },
     width: {
       type: String,
-      default: "100px",
+      default: "4em",
     },
   },
 };
