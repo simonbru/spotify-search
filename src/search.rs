@@ -46,6 +46,7 @@ pub struct TracksPage {
 
 #[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
 pub struct Playlist {
+    pub uri: String,
     pub name: String,
     pub tracks: TracksPage,
 }
@@ -128,14 +129,21 @@ fn match_track(track: &Track, keywords: &[&str]) -> bool {
     keywords.iter().all(|keyword| contains_keyword(keyword))
 }
 
+#[derive(Debug, Clone)]
+pub struct Collection {
+    pub name: String,
+    pub uri: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct SearchResult {
-    pub collection: String,
+    pub collection: Collection,
     pub index: usize,
     pub track: TrackMeta,
 }
 
 fn search_in_tracks(
-    collection: &str,
+    collection: &Collection,
     tracks: Vec<TrackMeta>,
     keywords: &[&str],
 ) -> Vec<SearchResult> {
@@ -144,7 +152,7 @@ fn search_in_tracks(
         .enumerate()
         .filter(|(_, track_meta)| match_track(&track_meta.track, keywords))
         .map(|(i, track_meta)| SearchResult {
-            collection: collection.to_string(),
+            collection: collection.clone(),
             index: i,
             track: track_meta,
         })
@@ -166,7 +174,11 @@ pub fn search(library_path: &Path, search_keywords: &[&str]) -> Vec<SearchResult
                 return;
             }
         };
-        let tracks = search_in_tracks("Library", library_tracks, &search_keywords);
+        let collection = Collection {
+            name: "Library".to_string(),
+            uri: "spotify:collection:tracks".to_string(),
+        };
+        let tracks = search_in_tracks(&collection, library_tracks, &search_keywords);
         results.extend(tracks);
     };
     search_in_library();
@@ -192,7 +204,11 @@ pub fn search(library_path: &Path, search_keywords: &[&str]) -> Vec<SearchResult
                 continue;
             }
         };
-        let tracks = search_in_tracks(&playlist.name, playlist.tracks.items, &search_keywords);
+        let collection = Collection {
+            name: playlist.name,
+            uri: playlist.uri,
+        };
+        let tracks = search_in_tracks(&collection, playlist.tracks.items, &search_keywords);
         results.extend(tracks);
     }
     return results;
@@ -232,6 +248,7 @@ mod tests {
         let test_playlist: Playlist = serde_json::from_str(&test_playlist_str).unwrap();
         let expected_playlist = Playlist {
             name: "my_playlist".to_string(),
+            uri: "spotify:playlist:37i9dQZF1DX0aSJooo0zWR".to_string(),
             tracks: TracksPage {
                 items: vec![TrackMeta {
                     added_at: "2010-08-23T10:33:01Z".to_string(),
@@ -244,7 +261,7 @@ mod tests {
                         album: Album {
                             name: "My album".to_string(),
                             images: vec![],
-                        }
+                        },
                     },
                 }],
             },

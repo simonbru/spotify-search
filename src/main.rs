@@ -80,7 +80,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         println!("COLLECTION:   TRACK  |  ARTISTS");
         println!("-------------------------------");
         for result in results {
-            let result_line = format_result(&result.collection, &result.track);
+            let result_line = format_result(&result.collection.name, &result.track);
             println!("{}", result_line);
         }
     }

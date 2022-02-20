@@ -1,4 +1,4 @@
-import { computed, onMounted, reactive } from "vue";
+import { computed, onMounted, reactive, readonly } from "vue";
 
 export const App = {
   name: "App",
@@ -35,7 +35,7 @@ export const App = {
         const response = await fetch(`/api/search?${params}`, {
           signal: abortController.signal,
         });
-        results.data = await response.json();
+        results.data = readonly(await response.json());
         results.loading = false;
       } catch (err) {
         if (err.name === "AbortError") {
@@ -120,14 +120,16 @@ export const SearchResult = {
         <a :href="uri">{{ title }}</a>
       </div>
       <div class="cell">{{ artistsLabel }}</div>
-      <div class="cell">{{ collection }}</div>
+      <div class="cell">
+        <a :href="collection.uri">{{ collection.name }}</a>
+      </div>
     </div>
   `,
   props: {
     title: String,
     artists: Array,
     uri: String,
-    collection: String,
+    collection: Object,
     thumbnail_url: {
       type: String,
       required: false,
@@ -176,6 +178,4 @@ export const Skeleton = {
 // TODO: more columns
 // TODO: show title and artist in the same column
 // TODO: sort items by column
-// TODO: submit button or debounce
-// TODO: optimize results.data with shallowReactive ?
-// TODO: links for playlist
+// TODO: submit button or debounce ? if debounce, how to handle url changes ?

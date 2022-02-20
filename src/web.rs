@@ -72,11 +72,17 @@ struct SearchQueryParams {
 }
 
 #[derive(Serialize)]
+pub struct Collection {
+    pub name: String,
+    pub uri: String,
+}
+
+#[derive(Serialize)]
 struct SearchResponseItem {
     title: String,
     artists: Vec<String>,
     uri: String,
-    collection: String,
+    collection: Collection,
     thumbnail_url: String,
 }
 
@@ -104,7 +110,10 @@ fn search_view(library_path: &Path, params: SearchQueryParams) -> warp::reply::J
                     .map(|artist| artist.name)
                     .collect(),
                 uri: result.track.track.uri,
-                collection: result.collection,
+                collection: Collection {
+                    name: result.collection.name,
+                    uri: result.collection.uri,
+                },
                 thumbnail_url: result
                     .track
                     .track
