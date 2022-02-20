@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Spotify Search</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+
+    <script async src="/static/vendor/es-module-shims@1.4.6/es-module-shims.js"></script>
+    <script type="importmap-shim" src="/import-map.importmap"></script>
+    <script type="module-shim">
+      import { createMainApp } from "/static/app.js";
+      createMainApp().mount("#app-container");
+    </script>
+  </head>
+  <body>
+    <div id="app-container"></div>
+  </body>
+</html>
