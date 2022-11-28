@@ -166,23 +166,20 @@ pub struct Collection {
 #[derive(Debug, Clone)]
 pub struct SearchResult {
     pub collection: Collection,
-    pub index: usize,
     pub track: TrackMeta,
 }
 
 fn search_in_tracks(
     collection: &Collection,
-    tracks: Vec<TrackMeta>,
+    tracks: &Vec<TrackMeta>,
     keywords: &[&str],
 ) -> Vec<SearchResult> {
     tracks
-        .into_iter()
-        .enumerate()
-        .filter(|(_, track_meta)| match_track(&track_meta.track, keywords))
-        .map(|(i, track_meta)| SearchResult {
+        .iter()
+        .filter(|track_meta| match_track(&track_meta.track, keywords))
+        .map(|track_meta| SearchResult {
             collection: collection.clone(),
-            index: i,
-            track: track_meta,
+            track: track_meta.clone(),
         })
         .collect()
 }
@@ -206,7 +203,7 @@ pub fn search(library_path: &Path, search_keywords: &[&str]) -> Vec<SearchResult
             name: "Library".to_string(),
             uri: "spotify:collection:tracks".to_string(),
         };
-        let tracks = search_in_tracks(&collection, library_tracks, &search_keywords);
+        let tracks = search_in_tracks(&collection, &library_tracks, &search_keywords);
         results.extend(tracks);
     };
     search_in_library();
@@ -236,7 +233,7 @@ pub fn search(library_path: &Path, search_keywords: &[&str]) -> Vec<SearchResult
             name: playlist.name,
             uri: playlist.uri,
         };
-        let tracks = search_in_tracks(&collection, playlist.tracks.items, &search_keywords);
+        let tracks = search_in_tracks(&collection, &playlist.tracks.items, &search_keywords);
         results.extend(tracks);
     }
     return results;
