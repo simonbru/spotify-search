@@ -1,15 +1,10 @@
 use std::fs;
 use std::path::Path;
 
-use serde::{Deserialize, Deserializer};
 use unidecode::unidecode;
 
 mod raw {
-    use std::fs;
-    use std::path::Path;
-
-    use serde::{Deserialize, Deserializer};
-    use unidecode::unidecode;
+    use serde::Deserialize;
 
     #[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
     pub struct Artist {
@@ -35,8 +30,6 @@ mod raw {
         pub name: String,
         pub album: Album,
 
-        // TODO: Re-implement
-        // #[serde(deserialize_with = "exclude_invalid_artists")]
         pub artists: Vec<Artist>,
     }
 
@@ -47,12 +40,8 @@ mod raw {
         pub track: Option<Track>,
     }
 
-    // type LibraryTracks = Vec<TrackMeta>;
-
     #[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
     pub struct TracksPage {
-        // TODO: re-implement
-        // #[serde(deserialize_with = "exclude_null_tracks")]
         pub items: Vec<TrackMeta>,
     }
 
@@ -64,29 +53,18 @@ mod raw {
     }
 }
 
-
-pub use raw::{Album, Artist, Image};
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Track {
-    pub uri: String,
-    pub name: String,
-    pub position: u32,
-    pub album: Album,
-
-    // #[serde(deserialize_with = "exclude_invalid_artists")]
-    pub artists: Vec<Artist>,
-}
+// TODO: different type for "artist with empty name" ? or different type for "track with invalid artists" ?
+pub use raw::{Album, Artist, Image, Track};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct TrackMeta {
     pub added_at: String,
+    pub position: u32,
     pub track: Track,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct TracksPage {
-    // #[serde(deserialize_with = "exclude_null_tracks")]
     pub items: Vec<TrackMeta>,
 }
 
@@ -98,11 +76,10 @@ pub struct Playlist {
 }
 
 impl Track {
-    fn from_raw(track: raw::Track, position: u32) -> Self {
+    fn from_raw(track: raw::Track) -> Self {
         Track {
             uri: track.uri,
             name: track.name,
-            position,
             album: track.album,
             /// When a track has no artist, its list of artist contains a single artist with empty values.
             artists: track
@@ -123,7 +100,8 @@ fn from_raw_track_metas(tracks: Vec<raw::TrackMeta>) -> Vec<TrackMeta> {
             let position = u32::try_from(i).unwrap() + 1;
             TrackMeta {
                 added_at: track_meta.added_at,
-                track: Track::from_raw(track_meta.track.unwrap(), position),
+                position,
+                track: Track::from_raw(track_meta.track.unwrap()),
             }
         })
         .collect()
@@ -305,10 +283,10 @@ mod tests {
             tracks: TracksPage {
                 items: vec![TrackMeta {
                     added_at: "2010-08-23T10:33:01Z".to_string(),
+                    position: 1,
                     track: Track {
                         uri: "spotify:track:asdfasdf".to_string(),
                         name: "My track".to_string(),
-                        position: 1,
                         artists: vec![Artist {
                             name: "My artist".to_string(),
                         }],
@@ -340,7 +318,7 @@ mod tests {
                 }
             }
         "#;
-        let test_track = Track::from_raw(serde_json::from_str(&test_track_str).unwrap(), 1);
+        let test_track = Track::from_raw(serde_json::from_str(&test_track_str).unwrap());
         assert_eq!(test_track.artists.len(), 0)
     }
 
@@ -370,7 +348,8 @@ mod tests {
                 }
             ]
         "#;
-        let test_track_metas = from_raw_track_metas(serde_json::from_str(&test_tracks_page_str).unwrap());
+        let test_track_metas =
+            from_raw_track_metas(serde_json::from_str(&test_tracks_page_str).unwrap());
         assert_eq!(test_track_metas.len(), 1);
         assert_eq!(test_track_metas[0].track.name, "My track");
     }
