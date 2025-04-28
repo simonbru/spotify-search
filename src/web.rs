@@ -69,6 +69,7 @@ fn import_map_view() -> warp::reply::Json {
 #[derive(Deserialize)]
 struct SearchQueryParams {
     q: String,
+    o: String,
 }
 
 #[derive(Serialize)]
@@ -96,7 +97,15 @@ struct SearchResponse {
 
 fn search_view(library_path: &Path, params: SearchQueryParams) -> warp::reply::Json {
     let keywords: Vec<&str> = params.q.split_whitespace().collect();
-    let results = search::search(&library_path, &keywords);
+    let mut results = search::search(&library_path, &keywords);
+    // TODO: cleaner abstraction
+    println!("params.o={:?}", params.o);
+    // let order = params.o.unwrap_or("".to_string());
+    // let order = params.order;
+    // println!("order={:?}", order);
+    if params.o == "added_at" {
+        results.sort_by_key(|item| item.track.added_at.clone());
+    }
     let response = SearchResponse {
         total: results.len(),
         items: results

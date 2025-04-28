@@ -33,7 +33,7 @@ export const App = {
       results.error = null;
 
       try {
-        const params = new URLSearchParams({ q: formData.query });
+        const params = new URLSearchParams({ q: formData.query, o: "added_at" });
         const response = await fetch(`/api/search?${params}`, {
           signal: abortController.signal,
         });
