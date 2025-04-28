@@ -54,7 +54,7 @@ mod raw {
 }
 
 // TODO: different type for "artist with empty name" ? or different type for "track with invalid artists" ?
-pub use raw::{Album, Artist, Image, Track};
+pub use raw::Track;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct TrackMeta {
@@ -81,7 +81,7 @@ impl Track {
             uri: track.uri,
             name: track.name,
             album: track.album,
-            /// When a track has no artist, its list of artist contains a single artist with empty values.
+            // When a track has no artist, its list of artist contains a single artist with empty values.
             artists: track
                 .artists
                 .into_iter()
