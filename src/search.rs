@@ -1,94 +1,122 @@
 use std::fs;
 use std::path::Path;
 
-use serde::{Deserialize, Deserializer};
 use unidecode::unidecode;
 
-#[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
-pub struct Artist {
-    pub name: String,
+mod raw {
+    use serde::Deserialize;
+
+    #[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
+    pub struct Artist {
+        pub name: String,
+    }
+
+    #[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
+    pub struct Image {
+        pub height: i32,
+        pub width: i32,
+        pub url: String,
+    }
+
+    #[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
+    pub struct Album {
+        pub name: String,
+        pub images: Vec<Image>,
+    }
+
+    #[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
+    pub struct Track {
+        pub uri: String,
+        pub name: String,
+        pub album: Album,
+
+        pub artists: Vec<Artist>,
+    }
+
+    #[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
+    pub struct TrackMeta {
+        pub added_at: String,
+        /// Some playlist contain items with dummy metadata and "track: null"
+        pub track: Option<Track>,
+    }
+
+    #[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
+    pub struct TracksPage {
+        pub items: Vec<TrackMeta>,
+    }
+
+    #[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
+    pub struct Playlist {
+        pub uri: String,
+        pub name: String,
+        pub tracks: TracksPage,
+    }
 }
 
-#[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
-pub struct Image {
-    pub height: i32,
-    pub width: i32,
-    pub url: String,
-}
+// TODO: different type for "artist with empty name" ? or different type for "track with invalid artists" ?
+pub use raw::Track;
 
-#[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
-pub struct Album {
-    pub name: String,
-    pub images: Vec<Image>,
-}
-
-#[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
-pub struct Track {
-    pub uri: String,
-    pub name: String,
-    pub album: Album,
-
-    #[serde(deserialize_with = "exclude_invalid_artists")]
-    pub artists: Vec<Artist>,
-}
-
-#[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct TrackMeta {
     pub added_at: String,
+    pub position: u32,
     pub track: Track,
 }
 
-#[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct TracksPage {
-    #[serde(deserialize_with = "exclude_null_tracks")]
     pub items: Vec<TrackMeta>,
 }
 
-#[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Playlist {
     pub uri: String,
     pub name: String,
     pub tracks: TracksPage,
 }
 
-type LibraryTracks = Vec<TrackMeta>;
-
-/// When a track has no artist, its list of artist contains a single artist with empty values.
-fn exclude_invalid_artists<'de, D>(deserializer: D) -> Result<Vec<Artist>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let artists: Vec<Artist> = Deserialize::deserialize(deserializer)?;
-    let filtered_artists = artists
-        .iter()
-        .filter(|artist| artist.name != "")
-        .cloned()
-        .collect();
-    return Ok(filtered_artists);
+impl Track {
+    fn from_raw(track: raw::Track) -> Self {
+        Track {
+            uri: track.uri,
+            name: track.name,
+            album: track.album,
+            // When a track has no artist, its list of artist contains a single artist with empty values.
+            artists: track
+                .artists
+                .into_iter()
+                .filter(|artist| artist.name != "")
+                .collect(),
+        }
+    }
 }
 
-/// Some playlist contain items with dummy metadata and "track: null"
-fn exclude_null_tracks<'de, D>(deserializer: D) -> Result<Vec<TrackMeta>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    #[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
-    struct NullableTrackMeta {
-        added_at: String,
-        track: Option<Track>,
-    }
-
-    let items: Vec<NullableTrackMeta> = Deserialize::deserialize(deserializer)?;
-    let track_metas = items
-        .iter()
-        .filter(|nullable_track_meta| nullable_track_meta.track.is_some())
-        .cloned()
-        .map(|track_meta| TrackMeta {
-            added_at: track_meta.added_at,
-            track: track_meta.track.unwrap(),
+fn from_raw_track_metas(tracks: Vec<raw::TrackMeta>) -> Vec<TrackMeta> {
+    tracks
+        .into_iter()
+        .filter(|track_meta| track_meta.track.is_some())
+        .enumerate()
+        .map(|(i, track_meta)| {
+            let position = u32::try_from(i).unwrap() + 1;
+            TrackMeta {
+                added_at: track_meta.added_at,
+                position,
+                track: Track::from_raw(track_meta.track.unwrap()),
+            }
         })
-        .collect();
-    return Ok(track_metas);
+        .collect()
+}
+
+impl From<raw::Playlist> for Playlist {
+    fn from(playlist: raw::Playlist) -> Self {
+        Playlist {
+            uri: playlist.uri,
+            name: playlist.name,
+            tracks: TracksPage {
+                items: from_raw_track_metas(playlist.tracks.items),
+            },
+        }
+    }
 }
 
 fn normalize_keyword(value: &str) -> String {
@@ -138,23 +166,20 @@ pub struct Collection {
 #[derive(Debug, Clone)]
 pub struct SearchResult {
     pub collection: Collection,
-    pub index: usize,
     pub track: TrackMeta,
 }
 
 fn search_in_tracks(
     collection: &Collection,
-    tracks: Vec<TrackMeta>,
+    tracks: &Vec<TrackMeta>,
     keywords: &[&str],
 ) -> Vec<SearchResult> {
     tracks
-        .into_iter()
-        .enumerate()
-        .filter(|(_, track_meta)| match_track(&track_meta.track, keywords))
-        .map(|(i, track_meta)| SearchResult {
+        .iter()
+        .filter(|track_meta| match_track(&track_meta.track, keywords))
+        .map(|track_meta| SearchResult {
             collection: collection.clone(),
-            index: i,
-            track: track_meta,
+            track: track_meta.clone(),
         })
         .collect()
 }
@@ -167,8 +192,8 @@ pub fn search(library_path: &Path, search_keywords: &[&str]) -> Vec<SearchResult
     let mut search_in_library = || {
         let path = Path::new(library_path).join("tracks.json");
         let contents = fs::read_to_string(&path).expect(&format!("Could not read {:?}", path));
-        let library_tracks: LibraryTracks = match serde_json::from_str(&contents) {
-            Ok(val) => val,
+        let library_tracks = match serde_json::from_str::<Vec<raw::TrackMeta>>(&contents) {
+            Ok(val) => from_raw_track_metas(val),
             Err(err) => {
                 eprintln!("Could not parse {:?}: {}", path.file_name().unwrap(), err);
                 return;
@@ -178,7 +203,7 @@ pub fn search(library_path: &Path, search_keywords: &[&str]) -> Vec<SearchResult
             name: "Library".to_string(),
             uri: "spotify:collection:tracks".to_string(),
         };
-        let tracks = search_in_tracks(&collection, library_tracks, &search_keywords);
+        let tracks = search_in_tracks(&collection, &library_tracks, &search_keywords);
         results.extend(tracks);
     };
     search_in_library();
@@ -197,8 +222,8 @@ pub fn search(library_path: &Path, search_keywords: &[&str]) -> Vec<SearchResult
         // println!("Parsing {:?}", path);
         let contents = fs::read_to_string(&path).expect(&format!("Could not read {:?}", path));
 
-        let playlist: Playlist = match serde_json::from_str(&contents) {
-            Ok(val) => val,
+        let playlist: Playlist = match serde_json::from_str::<raw::Playlist>(&contents) {
+            Ok(val) => val.into(),
             Err(err) => {
                 eprintln!("Could not parse {:?}: {}", path.file_name().unwrap(), err);
                 continue;
@@ -208,7 +233,7 @@ pub fn search(library_path: &Path, search_keywords: &[&str]) -> Vec<SearchResult
             name: playlist.name,
             uri: playlist.uri,
         };
-        let tracks = search_in_tracks(&collection, playlist.tracks.items, &search_keywords);
+        let tracks = search_in_tracks(&collection, &playlist.tracks.items, &search_keywords);
         results.extend(tracks);
     }
     return results;
@@ -222,6 +247,7 @@ mod tests {
     fn parse_playlist() {
         let test_playlist_str = r#"
             {
+                "uri": "spotify:playlist:37i9dQZF1DX0aSJooo0zWR",
                 "name": "my_playlist",
                 "tracks": {
                     "items": [
@@ -245,13 +271,16 @@ mod tests {
                 }
             }
         "#;
-        let test_playlist: Playlist = serde_json::from_str(&test_playlist_str).unwrap();
+        let test_playlist: Playlist = serde_json::from_str::<raw::Playlist>(&test_playlist_str)
+            .unwrap()
+            .into();
         let expected_playlist = Playlist {
             name: "my_playlist".to_string(),
             uri: "spotify:playlist:37i9dQZF1DX0aSJooo0zWR".to_string(),
             tracks: TracksPage {
                 items: vec![TrackMeta {
                     added_at: "2010-08-23T10:33:01Z".to_string(),
+                    position: 1,
                     track: Track {
                         uri: "spotify:track:asdfasdf".to_string(),
                         name: "My track".to_string(),
@@ -286,41 +315,40 @@ mod tests {
                 }
             }
         "#;
-        let test_track: Track = serde_json::from_str(&test_track_str).unwrap();
+        let test_track = Track::from_raw(serde_json::from_str(&test_track_str).unwrap());
         assert_eq!(test_track.artists.len(), 0)
     }
 
     #[test]
-    fn parse_tracks_page_exclude_null_tracks() {
+    fn parse_track_metas_exclude_null_tracks() {
         let test_tracks_page_str = r#"
-            {
-                "items": [
-                    {
-                        "added_at": "1970-01-01T00:00:00Z",
-                        "track": null
-                    },
-                    {
-                        "added_at": "2010-08-23T10:33:01Z",
-                        "track": {
-                            "uri": "spotify:track:asdfasdf",
-                            "name": "My track",
-                            "artists": [
-                                {
-                                    "name": "My artist"
-                                }
-                            ],
-                            "album": {
-                                "name": "Album",
-                                "images": []
+            [
+                {
+                    "added_at": "1970-01-01T00:00:00Z",
+                    "track": null
+                },
+                {
+                    "added_at": "2010-08-23T10:33:01Z",
+                    "track": {
+                        "uri": "spotify:track:asdfasdf",
+                        "name": "My track",
+                        "artists": [
+                            {
+                                "name": "My artist"
                             }
+                        ],
+                        "album": {
+                            "name": "Album",
+                            "images": []
                         }
                     }
-                ]
-            }
+                }
+            ]
         "#;
-        let test_tracks_page: TracksPage = serde_json::from_str(&test_tracks_page_str).unwrap();
-        assert_eq!(test_tracks_page.items.len(), 1);
-        assert_eq!(test_tracks_page.items[0].track.name, "My track");
+        let test_track_metas =
+            from_raw_track_metas(serde_json::from_str(&test_tracks_page_str).unwrap());
+        assert_eq!(test_track_metas.len(), 1);
+        assert_eq!(test_track_metas[0].track.name, "My track");
     }
 
     #[test]

@@ -31,9 +31,10 @@ fn format_result(collection_name: &str, track_meta: &search::TrackMeta) -> Strin
         false => artists.join(", "),
     };
     return format!(
-        // "{collection}\t{track}\t{artists}"
-        "{collection}:   {track}  |  {artists}",
+        // "{collection}: #{pos}\t{track}\t{artists}"
+        "{collection}: #{pos}   {track}  |  {artists}",
         collection = truncate_chars(collection_name, 30),
+        pos = track_meta.position,
         artists = artists_label,
         track = track_meta.track.name,
     );

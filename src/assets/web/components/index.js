@@ -84,6 +84,8 @@ export const SearchResults = {
           <div class="cell">TRACK</div>
           <div class="cell">ARTISTS</div>
           <div class="cell">COLLECTION</div>
+          <div class="cell">#</div>
+          <div class="cell">ADDED ON</div>
         </div>
 
         <template v-if="loading">
@@ -125,6 +127,8 @@ export const SearchResult = {
       <div class="cell">
         <a :href="collection.uri">{{ collection.name }}</a>
       </div>
+      <div class="cell">{{ position }}</div>
+      <div class="cell">{{ added_at }}</div>
     </div>
   `,
   props: {
@@ -132,6 +136,8 @@ export const SearchResult = {
     artists: Array,
     uri: String,
     collection: Object,
+    position: String,
+    added_at: String,
     thumbnail_url: {
       type: String,
       required: false,
@@ -157,6 +163,12 @@ export const SearchResultSkeleton = {
       <div class="cell">
         <Skeleton width="60%" />
       </div>
+      <div class="cell">
+        <Skeleton width="30%" />
+      </div>
+      <div class="cell">
+        <Skeleton width="80%" />
+      </div>
     </div>
   `,
 };
@@ -177,7 +189,7 @@ export const Skeleton = {
   },
 };
 
-// TODO: more columns (e.g. "added at", "album", "index in playlist")
+// TODO: more columns (e.g. "album")
 // TODO: show title and artist in the same column
 // TODO: sort items by column
 // TODO: submit button or debounce ? if debounce, how to handle url changes ?
