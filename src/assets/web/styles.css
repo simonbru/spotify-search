@@ -40,7 +40,7 @@ img {
 
 .row {
   display: grid;
-  grid-template-columns: [title] 6fr [artist] 4fr [playlist] 4fr;
+  grid-template-columns: [title] 12fr [artist] 8fr [playlist] 8fr [position] 1fr;
   grid-gap: 16px;
   margin-bottom: 16px;
 }

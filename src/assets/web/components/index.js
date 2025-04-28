@@ -84,6 +84,7 @@ export const SearchResults = {
           <div class="cell">TRACK</div>
           <div class="cell">ARTISTS</div>
           <div class="cell">COLLECTION</div>
+          <div class="cell">#</div>
         </div>
 
         <template v-if="loading">
@@ -125,6 +126,7 @@ export const SearchResult = {
       <div class="cell">
         <a :href="collection.uri">{{ collection.name }}</a>
       </div>
+      <div class="cell">{{ position }}</div>
     </div>
   `,
   props: {
@@ -132,6 +134,7 @@ export const SearchResult = {
     artists: Array,
     uri: String,
     collection: Object,
+    position: String,
     thumbnail_url: {
       type: String,
       required: false,
@@ -156,6 +159,9 @@ export const SearchResultSkeleton = {
       </div>
       <div class="cell">
         <Skeleton width="60%" />
+      </div>
+      <div class="cell">
+        <Skeleton width="30%" />
       </div>
     </div>
   `,

@@ -83,6 +83,7 @@ struct SearchResponseItem {
     artists: Vec<String>,
     uri: String,
     collection: Collection,
+    position: String,
     thumbnail_url: String,
 }
 
@@ -114,6 +115,7 @@ fn search_view(library_path: &Path, params: SearchQueryParams) -> warp::reply::J
                     name: result.collection.name,
                     uri: result.collection.uri,
                 },
+                position: result.track.position.to_string(),
                 thumbnail_url: result
                     .track
                     .track
